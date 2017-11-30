@@ -1,0 +1,99 @@
+#!/bin/sh
+#
+### BEGIN INIT INFO
+# Provides: HA-dcached
+# Default-Start:
+# Default-Stop:
+# Short-Description: Start and stop the high-availability-dcache daemon
+# Description: HA-dcached provides simple high-availability functions
+### END INIT INFO
+#
+# The fields below are left around for legacy tools (will remove later).
+#
+# chkconfig: - 65 35
+# description: HA-dcached provides simple high-availability functions
+# processname: HA-dcache
+# config: /etc/HA-dcache.json
+# pidfile: /var/run/HA-dcache.pid
+
+. /etc/rc.d/init.d/functions
+
+RETVAL=0
+
+prog=HA-dcached
+user=root
+group=root
+exec=/usr/sbin/HA-dcache
+lockfile=/var/lock/subsys/HA-dcached
+pidfile=/var/run/HA-dcache.pid
+logfile=/var/log/HA-dcache.log
+config=/etc/HA-dcache.conf
+
+[ -f /etc/sysconfig/HA-dcache ] && . /etc/sysconfig/HA-dcache
+
+
+rh_status() {
+    status -p $pidfile $exec
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+start() {
+    [ `id -u` -eq 0 ] || return 4
+    [ -x $exec ] || return 5
+    #[ -f $config ] || return 6
+
+    rh_status_q && return 0
+
+    daemon --pidfile=$pidfile $exec -d -c $config -r -a
+    RETVAL=$?
+
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+    [ `id -u` -eq 0 ] || return 4
+
+    rh_status_q || return 0
+
+    echo -n $"Shutting down $prog: "
+    killproc -p $pidfile $prog
+    RETVAL=$?
+
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    return $RETVAL
+}
+
+usage() {
+    echo $"Usage: $0 {start|stop|restart|status}"
+}
+
+if [ $# -gt 1 ]; then
+    exit 2
+fi
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop ; start
+        ;;
+    status)
+        rh_status
+        ;;
+    *)
+        usage
+        exit 2
+        ;;
+esac
+
+exit $?

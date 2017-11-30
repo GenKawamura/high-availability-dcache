@@ -1,0 +1,138 @@
+#!/bin/bash
+
+. /etc/profile
+
+REALLY_ACT=""
+HA_DCACHE_CONF=/etc/HA-dcache.conf
+
+# Interval (sec) to check dcache in daemon mode
+INTERVAL=3600
+
+# PID & LOG file (with daemon mode)
+PIDFILE=/var/run/HA-dcache.pid
+LOGFILE=/var/log/HA-dcache.log
+
+usage="$0 [option]
+ * (Simple) high-availabilty dCache
+
+ -d:   daemon mode
+
+ -c:   configuration file [default: $HA_DCACHE_CONF]
+
+ -s:   show status
+
+ -r:   Run high-availability dCache (but do nothing)
+ -a:   Really run high-availability dCache (with -r option)
+
+
+ * Examples
+
+  # Show status
+  $0 -c $HA_DCACHE_CONF -s
+
+  # Run without doing anything
+  $0 -c $HA_DCACHE_CONF -r
+
+  # Really do actions
+  $0 -c $HA_DCACHE_CONF -r -a
+
+
+  Report Bugs to <gen.kawamura@cern.ch>"
+
+
+if [ $# -eq 0 ]; then
+    echo "$usage"
+    exit 0
+fi
+
+
+#--------------------------
+# Functions
+#--------------------------
+DCACHE_WEB_CELL_SERVICES=""
+DCACHE_WEB_POOL_USAGE=""
+DCACHE_SERVERS=()
+DCACHE_POOLS=()
+DCACHE_SERVICES=()
+
+
+config_reader(){
+    if [ -e "$HA_DCACHE_CONF" ]; then
+	echo "Reading [$HA_DCACHE_CONF] ..."
+	source $HA_DCACHE_CONF
+    else
+	exit -1
+    fi
+}
+
+
+service_conf_reader(){
+    local node=$1
+
+    if [ -e "$HA_DCACHE_SERVICE" ]; then
+	echo "Reading [$HA_DCACHE_SERVICE] ..."
+	source $HA_DCACHE_SERVICE
+    else
+	exit -1
+    fi
+}
+
+
+HA_dcache(){
+    local a=
+
+}
+
+
+daemon_HA_dcache(){
+    local prog=$1
+    local options="$2"
+
+    while true; do
+	$prog $options
+	sleep $INTERVAL
+    done
+}
+
+
+send_notification_email(){
+    echo "MOCK ..."
+}
+
+
+#--------------------------
+# Getopt
+#--------------------------
+while getopts "c:j:dsrah" op
+  do
+  case $op in
+      c)
+	  HA_DCACHE_CONF=$OPTARG
+	  ;;
+      j) 
+	  HA_DCACHE_SERVICE=$OPTARG
+	  ;;
+      d)
+	  shift
+	  echo -n "Starting [$(basename $0) $*]:"
+	  daemon_HA_dcache $0 "$*" 2>&1 >> $LOGFILE &
+	  echo "$!" > $PIDFILE
+	  exit 0
+	  ;;
+      s) 
+	  show_status
+	  ;;
+      r)
+	  HA_dcache
+	  ;;
+      a)
+	  REALLY_ACT="REALLY_ACT"
+	  ;;
+      h) 
+	  echo "$usage"
+	  exit 0
+	  ;;
+  esac
+done
+
+
